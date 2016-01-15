@@ -1,19 +1,19 @@
 package daemontools
 
 import (
+	"encoding/binary"
+	"fmt"
 	"os"
 	"path"
-	"fmt"
 	"time"
-	"encoding/binary"
 )
 
 type Status struct {
-	Service string
-	PID int
-	Paused bool
-	Want byte
-	When time.Time
+	Service    string
+	PID        int
+	Paused     bool
+	Want       byte
+	When       time.Time
 	NormallyUp bool
 }
 
@@ -41,12 +41,12 @@ func (s *Status) String() (o string) {
 		o += " want up"
 	}
 	if hasPid && s.Want == 'd' {
-		o +=  "want down"
+		o += "want down"
 	}
 	return
 }
 
-func Svstat(service string) (s *Status, err error){
+func Svstat(service string) (s *Status, err error) {
 	var f *os.File
 	f, err = os.OpenFile(path.Join(service, "supervise", "ok"), os.O_WRONLY, 0)
 	if err != nil {
@@ -59,23 +59,23 @@ func Svstat(service string) (s *Status, err error){
 	}
 	b := make([]byte, 18)
 	n, err := f.Read(b)
-	if err != nil || n != 18{
+	if err != nil || n != 18 {
 		return nil, err
 	}
 	f.Close()
-	
+
 	var normallyUp bool
 	if _, err := os.Stat(path.Join(service, "down")); err != nil && os.IsNotExist(err) {
 		normallyUp = true
 	}
-	
+
 	s = &Status{
-		Service: service,
-		PID: int(binary.LittleEndian.Uint32(b[12:16])),
-		Paused: b[16] == '1',
-		Want: b[17],
-		When: time.Unix(int64( binary.BigEndian.Uint64(b[:8]) - taiEpoch), 0),
-		NormallyUp:normallyUp,
+		Service:    service,
+		PID:        int(binary.LittleEndian.Uint32(b[12:16])),
+		Paused:     b[16] == '1',
+		Want:       b[17],
+		When:       taiUnpack(b[:8]),
+		NormallyUp: normallyUp,
 	}
 	return s, nil
 }
