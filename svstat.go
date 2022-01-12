@@ -3,8 +3,10 @@ package daemontools
 import (
 	"encoding/binary"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"syscall"
 	"time"
 )
 
@@ -46,10 +48,22 @@ func (s *Status) String() (o string) {
 	return
 }
 
+type Error struct {
+	Msg string
+	Err error
+}
+
+func (e Error) Error() string {
+	return e.Msg
+}
+
 func Svstat(service string) (s *Status, err error) {
 	var f *os.File
-	f, err = os.OpenFile(path.Join(service, "supervise", "ok"), os.O_WRONLY, 0)
+	f, err = os.OpenFile(path.Join(service, "supervise", "ok"), os.O_WRONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
+		if err, ok := err.(*fs.PathError); ok && err.Err.Error() == "no such device or address" {
+			return nil, Error{Msg: "supervise not running", Err: err}
+		}
 		return nil, err
 	}
 	f.Close()
