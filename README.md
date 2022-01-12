@@ -4,4 +4,6 @@
 
 Go library for managing daemontools (svc, svstat)
 
+`go install github.com/jehiah/go-daemontools/cmd/svstat@latest`
+
 <https://cr.yp.to/daemontools.html>
